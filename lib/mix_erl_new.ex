@@ -60,7 +60,6 @@ defmodule Mix.Tasks.Erl.New do
       mod: mod,
       path: path,
       project: Macro.camelize(app),
-      version: "0.1.0",
       sup: opts[:sup]
     ]
 
@@ -96,7 +95,7 @@ defmodule Mix.Tasks.Erl.New do
     def project do
       [
         app: :<%= @app %>,
-        version: "<%= @version %>",
+        version: "0.1.0",
         language: :erlang,
         erlc_options: erlc_options(),
         deps: deps()
