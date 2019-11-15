@@ -64,7 +64,11 @@ defmodule Mix.Tasks.Erl.New do
     ]
 
     create_file("README.md", readme_template(assigns))
-    create_file("mix.exs", mix_exs_template(assigns))
+    if in_umbrella?() do
+      create_file("mix.exs", mix_exs_apps_template(assigns))
+    else
+      create_file("mix.exs", mix_exs_template(assigns))
+    end
 
     create_directory("src")
     create_file("src/#{mod}.erl", mod_template(assigns))
@@ -83,6 +87,19 @@ defmodule Mix.Tasks.Erl.New do
     end
   end
 
+  defp in_umbrella? do
+    apps = Path.dirname(File.cwd!())
+
+    try do
+      Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
+        path = Mix.Project.config()[:apps_path]
+        path && Path.expand(path) == apps
+      end)
+    catch
+      _, _ -> false
+    end
+  end
+
   embed_template(:readme, """
   mix compile
   ERL_LIBS=_build/dev/lib/ erl
@@ -96,6 +113,49 @@ defmodule Mix.Tasks.Erl.New do
       [
         app: :<%= @app %>,
         version: "0.1.0",
+        language: :erlang,
+        erlc_options: erlc_options(),
+        deps: deps()
+      ]
+    end
+
+    <%= if @sup do %>
+    def application do
+      [
+        mod: {:<%= @app %>_app, []}
+      ]
+    end
+    <% end %>
+
+    defp erlc_options do
+      [
+        :debug_info,
+        :warnings_as_errors
+      ]
+    end
+
+    defp deps do
+      [
+        # {:dep_from_hexpm, "~> 0.3.0"},
+        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+        # {:sibling_app_in_umbrella, in_umbrella: true}
+      ]
+    end
+  end
+  """)
+
+  embed_template(:mix_exs_apps, """
+  defmodule <%= @project %>.MixProject do
+    use Mix.Project
+
+    def project do
+      [
+        app: :<%= @app %>,
+        version: "0.1.0",
+        build_path: "../../_build",
+        config_path: "../../config/config.exs",
+        deps_path: "../../deps",
+        lockfile: "../../mix.lock",
         language: :erlang,
         erlc_options: erlc_options(),
         deps: deps()
